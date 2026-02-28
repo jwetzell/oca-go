@@ -15,7 +15,7 @@ type Ocp1Response struct {
 type Ocp1ResponseData []Ocp1Response
 
 func (r *Ocp1Response) UnmarshalBinary(data []byte) error {
-	if len(data) < 17 {
+	if len(data) < 9 {
 		return errors.New("Ocp1Response: not enough data")
 	}
 	r.ResponseSize = uint32(data[0])<<24 | uint32(data[1])<<16 | uint32(data[2])<<8 | uint32(data[3])
