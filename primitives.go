@@ -27,10 +27,9 @@ func (b OcaBlob) MarshalBinary() ([]byte, error) {
 	if length > 65535 {
 		return nil, errors.New("OcaBlob: blob too large to marshal")
 	}
-	data := make([]byte, 2+length)
-	data[0] = byte(length >> 8)
-	data[1] = byte(length & 0xff)
+	data := []byte{byte(length >> 8), byte(length & 0xff)}
 	data = append(data, b...)
+
 	return data, nil
 }
 
