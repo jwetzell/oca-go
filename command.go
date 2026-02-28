@@ -15,6 +15,26 @@ type Ocp1Command struct {
 
 type Ocp1CommandData []Ocp1Command
 
+func NewCommand(handle uint32, targetONo OcaONo, methodID OcaMethodID, parameters Ocp1Parameters) (Ocp1Command, error) {
+
+	command := Ocp1Command{
+		Handle:     handle,
+		TargetONo:  targetONo,
+		MethodID:   methodID,
+		Parameters: parameters,
+	}
+
+	commandSize := uint32(17) // size of fixed fields
+	parametersBytes, err := parameters.MarshalBinary()
+	if err != nil {
+		return Ocp1Command{}, fmt.Errorf("failed to marshal parameters: %w", err)
+	}
+	commandSize += uint32(len(parametersBytes))
+	command.CommandSize = commandSize
+
+	return command, nil
+}
+
 func (c *Ocp1Command) UnmarshalBinary(data []byte) error {
 	if len(data) < 17 {
 		return errors.New("Ocp1Command: not enough data")
@@ -59,7 +79,7 @@ func (c *Ocp1Command) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (c *Ocp1Command) MarshalBinary() ([]byte, error) {
+func (c Ocp1Command) MarshalBinary() ([]byte, error) {
 	bytes := make([]byte, 17)
 	bytes[0] = byte(c.CommandSize >> 24)
 	bytes[1] = byte((c.CommandSize >> 16) & 0xff)
@@ -90,9 +110,9 @@ func (c *Ocp1Command) MarshalBinary() ([]byte, error) {
 	return bytes, nil
 }
 
-func (d *Ocp1CommandData) MarshalBinary() ([]byte, error) {
+func (d Ocp1CommandData) MarshalBinary() ([]byte, error) {
 	var bytes []byte
-	for _, cmd := range *d {
+	for _, cmd := range d {
 		cmdBytes, err := cmd.MarshalBinary()
 		if err != nil {
 			return nil, fmt.Errorf("Ocp1CommandData: failed to marshal command: %w", err)
@@ -102,12 +122,12 @@ func (d *Ocp1CommandData) MarshalBinary() ([]byte, error) {
 	return bytes, nil
 }
 
-func (c *Ocp1Command) String() string {
+func (c Ocp1Command) String() string {
 	return fmt.Sprintf("{Size: %d, Handle: %d, TargetONo: %d, MethodID: %s, Parameters: %s}",
 		c.CommandSize, c.Handle, c.TargetONo, c.MethodID.String(), c.Parameters.String())
 }
 
-func (c *Ocp1Command) GetParameterDecoders() ([]ParameterDecoder, error) {
+func (c Ocp1Command) GetParameterDecoders() ([]ParameterDecoder, error) {
 	if c.Parameters.ParameterCount == 0 {
 		return nil, nil
 	}
