@@ -20,7 +20,7 @@ func (e *OcaEvent) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (e *OcaEvent) MarshalBinary() ([]byte, error) {
+func (e OcaEvent) MarshalBinary() ([]byte, error) {
 	bytes := make([]byte, 8)
 	bytes[0] = byte(e.EmitterONo >> 24)
 	bytes[1] = byte((e.EmitterONo >> 16) & 0xff)
@@ -49,7 +49,7 @@ func (e *OcaEventID) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (e *OcaEventID) MarshalBinary() ([]byte, error) {
+func (e OcaEventID) MarshalBinary() ([]byte, error) {
 	bytes := make([]byte, 4)
 	bytes[0] = byte(e.DefLevel >> 8)
 	bytes[1] = byte(e.DefLevel & 0xff)

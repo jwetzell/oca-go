@@ -27,39 +27,45 @@ func (c *Ocp1Command) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("Ocp1Command: failed to unmarshal MethodID: %w", err)
 	}
-	err = c.Parameters.UnmarshalBinary(data[16:])
+	err = c.Parameters.UnmarshalBinary(data[16:c.CommandSize])
 	if err != nil {
 		return fmt.Errorf("Ocp1Command: failed to unmarshal Parameters: %w", err)
 	}
 
-	// objectDecoder, ok := ObjectDecoders[c.TargetONo]
-	// if !ok {
-	// 	return fmt.Errorf("Ocp1Command: no decoder found for TargetONo %d", c.TargetONo)
-	// }
+	if c.Parameters.ParameterCount == 0 {
+		return nil
+	}
+	c.Parameters.Parameters = make([]Ocp1Parameter, c.Parameters.ParameterCount)
 
-	// defLevelDecoder, ok := objectDecoder[c.MethodID.DefLevel]
-	// if !ok {
-	// 	return fmt.Errorf("Ocp1Command: no decoder found for DefLevel %d", c.MethodID.DefLevel)
-	// }
+	objectDecoder, ok := ObjectDecoders[c.TargetONo]
+	if !ok {
+		return fmt.Errorf("Ocp1Command: no decoder found for TargetONo %d", c.TargetONo)
+	}
 
-	// methodDecoder, ok := defLevelDecoder[c.MethodID.MethodIndex]
-	// if !ok {
-	// 	return fmt.Errorf("Ocp1Command: no decoder found for MethodIndex %d", c.MethodID.MethodIndex)
-	// }
+	defLevelDecoder, ok := objectDecoder[c.MethodID.DefLevel]
+	if !ok {
+		return fmt.Errorf("Ocp1Command: no decoder found for DefLevel %d", c.MethodID.DefLevel)
+	}
 
-	// if len(methodDecoder) != int(c.Parameters.ParameterCount) {
-	// 	return fmt.Errorf("Ocp1Command: expected %d parameter decoders, got %d", len(methodDecoder), c.Parameters.ParameterCount)
-	// }
+	methodDecoder, ok := defLevelDecoder[c.MethodID.MethodIndex]
+	if !ok {
+		return fmt.Errorf("Ocp1Command: no decoder found for MethodIndex %d", c.MethodID.MethodIndex)
+	}
 
-	// paramOffset := 0
-	// for i := 0; i < int(c.Parameters.ParameterCount); i++ {
-	// 	decoder := methodDecoder[i]
-	// 	param, size, err := decoder(c.Parameters.Bytes[paramOffset:])
-	// 	if err != nil {
-	// 		return fmt.Errorf("Ocp1Command: failed to decode parameter %d: %w", i, err)
-	// 	}
-	// 	paramOffset += int(size)
-	// }
+	if len(methodDecoder) != int(c.Parameters.ParameterCount) {
+		return fmt.Errorf("Ocp1Command: expected %d parameter decoders, got %d", len(methodDecoder), c.Parameters.ParameterCount)
+	}
+
+	paramOffset := 0
+	for i := 0; i < int(c.Parameters.ParameterCount); i++ {
+		decoder := methodDecoder[i]
+		param, size, err := decoder(c.Parameters.Bytes[paramOffset:])
+		if err != nil {
+			return fmt.Errorf("Ocp1Command: failed to decode parameter %d: %w", i, err)
+		}
+		paramOffset += int(size)
+		c.Parameters.Parameters[i] = param
+	}
 	return nil
 }
 
@@ -104,4 +110,9 @@ func (d *Ocp1CommandData) MarshalBinary() ([]byte, error) {
 		bytes = append(bytes, cmdBytes...)
 	}
 	return bytes, nil
+}
+
+func (c *Ocp1Command) String() string {
+	return fmt.Sprintf("{Size: %d, Handle: %d, TargetONo: %d, MethodID: %s, Parameters: %s}",
+		c.CommandSize, c.Handle, c.TargetONo, c.MethodID.String(), c.Parameters.String())
 }

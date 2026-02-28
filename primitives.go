@@ -18,14 +18,14 @@ func (b *OcaBlob) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (b *OcaBlob) MarshalBinary() ([]byte, error) {
-	length := len(*b)
+func (b OcaBlob) MarshalBinary() ([]byte, error) {
+	length := len(b)
 	if length > 65535 {
 		return nil, errors.New("OcaBlob: blob too large to marshal")
 	}
 	data := make([]byte, 2+length)
 	data[0] = byte(length >> 8)
 	data[1] = byte(length & 0xff)
-	data = append(data, *b...)
+	data = append(data, b...)
 	return data, nil
 }

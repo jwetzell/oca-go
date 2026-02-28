@@ -60,7 +60,7 @@ func (m *Ocp1MessagePdu) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (m *Ocp1MessagePdu) MarshalBinary() ([]byte, error) {
+func (m Ocp1MessagePdu) MarshalBinary() ([]byte, error) {
 	bytes := []byte{m.SyncVal}
 	headerBytes, err := m.Header.MarshalBinary()
 	if err != nil {
