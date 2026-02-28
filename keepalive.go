@@ -10,7 +10,7 @@ type Ocp1KeepAliveData struct {
 	Seconds          bool
 }
 
-func (d *Ocp1KeepAliveData) String() string {
+func (d Ocp1KeepAliveData) String() string {
 	if d.Seconds {
 		return fmt.Sprintf("{HeartbeatTimeout: %d seconds}", d.HeartbeatTimeout)
 	}
@@ -32,7 +32,7 @@ func (d *Ocp1KeepAliveData) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (d *Ocp1KeepAliveData) MarshalBinary() ([]byte, error) {
+func (d Ocp1KeepAliveData) MarshalBinary() ([]byte, error) {
 	if d.Seconds {
 		bytes := make([]byte, 2)
 		bytes[0] = byte(d.HeartbeatTimeout >> 8)
