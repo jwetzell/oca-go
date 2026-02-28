@@ -87,3 +87,41 @@ func (m Ocp1MessagePdu) MarshalBinary() ([]byte, error) {
 	bytes = append(bytes, dataBytes...)
 	return bytes, nil
 }
+
+func NewMessage(protocolVersion uint16, pduType Ocp1MessageType, data Ocp1Data) (Ocp1MessagePdu, error) {
+	syncVal := byte(0x3b)
+	header := Ocp1Header{
+		ProtocolVersion: protocolVersion,
+		PduType:         pduType,
+	}
+	switch pduType {
+	case Ocp1Cmd, Ocp1CmdRrq:
+		commandData, ok := data.(Ocp1CommandData)
+		if !ok {
+			return Ocp1MessagePdu{}, fmt.Errorf("data must be of type Ocp1CommandData for PDU type %d", pduType)
+		}
+		header.MessageCount = uint16(len(commandData))
+	case Ocp1Rsp:
+		responseData, ok := data.(Ocp1ResponseData)
+		if !ok {
+			return Ocp1MessagePdu{}, fmt.Errorf("data must be of type Ocp1ResponseData for PDU type %d", pduType)
+		}
+		header.MessageCount = uint16(len(responseData))
+	case Ocp1KeepAlive:
+		header.MessageCount = 1
+	default:
+		return Ocp1MessagePdu{}, fmt.Errorf("unsupported PDU type: %d", pduType)
+	}
+	messageSize := uint32(9)
+	dataBytes, err := data.MarshalBinary()
+	if err != nil {
+		return Ocp1MessagePdu{}, fmt.Errorf("failed to marshal data: %w", err)
+	}
+	messageSize += uint32(len(dataBytes))
+	header.PduSize = messageSize
+	return Ocp1MessagePdu{
+		SyncVal: syncVal,
+		Header:  header,
+		Data:    data,
+	}, nil
+}

@@ -25,7 +25,7 @@ func TestGoodUnmarshalOCA(t *testing.T) {
 					PduType:         4,
 					MessageCount:    1,
 				},
-				Data: &oca.Ocp1KeepAliveData{
+				Data: oca.Ocp1KeepAliveData{
 					HeartbeatTimeout: 1,
 					Seconds:          true,
 				},
