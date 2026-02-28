@@ -1,10 +1,17 @@
 package oca
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type OcaMethod struct {
 	ONo      OcaONo
 	MethodID OcaMethodID
+}
+
+func (m *OcaMethod) String() string {
+	return fmt.Sprintf("{ONo: %d, ID: %s}", m.ONo, m.MethodID.String())
 }
 
 func (m *OcaMethod) UnmarshalBinary(data []byte) error {
@@ -37,6 +44,10 @@ func (m *OcaMethod) MarshalBinary() ([]byte, error) {
 type OcaMethodID struct {
 	DefLevel    uint16
 	MethodIndex uint16
+}
+
+func (c *OcaMethodID) String() string {
+	return fmt.Sprintf("{Level: %d, Index: %d}", c.DefLevel, c.MethodIndex)
 }
 
 func (c *OcaMethodID) UnmarshalBinary(data []byte) error {

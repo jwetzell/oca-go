@@ -1,10 +1,20 @@
 package oca
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type Ocp1KeepAliveData struct {
 	HeartbeatTimeout uint32
 	Seconds          bool
+}
+
+func (d *Ocp1KeepAliveData) String() string {
+	if d.Seconds {
+		return fmt.Sprintf("{HeartbeatTimeout: %d seconds}", d.HeartbeatTimeout)
+	}
+	return fmt.Sprintf("{HeartbeatTimeout: %d milliseconds}", d.HeartbeatTimeout)
 }
 
 func (d *Ocp1KeepAliveData) UnmarshalBinary(data []byte) error {
