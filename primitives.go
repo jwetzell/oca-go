@@ -2,7 +2,26 @@ package oca
 
 import (
 	"errors"
-)
+
+type OcaBool bool
+
+func (b *OcaBool) UnmarshalBinary(data []byte) error {
+	if len(data) < 1 {
+		return errors.New("OcaBool: not enough data")
+	}
+	*b = data[0] != 0
+	return nil
+}
+
+func (b OcaBool) MarshalBinary() ([]byte, error) {
+	var value byte
+	if b {
+		value = 1
+	} else {
+		value = 0
+	}
+	return []byte{value}, nil
+}
 
 type OcaStatus uint8
 
