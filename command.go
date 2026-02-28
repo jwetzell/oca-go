@@ -8,7 +8,7 @@ import (
 type Ocp1Command struct {
 	CommandSize uint32
 	Handle      uint32
-	TargetONo   uint32
+	TargetONo   OcaONo
 	MethodID    OcaMethodID
 	Parameters  Ocp1Parameters
 }
@@ -21,7 +21,7 @@ func (c *Ocp1Command) UnmarshalBinary(data []byte) error {
 	}
 	c.CommandSize = uint32(data[0])<<24 | uint32(data[1])<<16 | uint32(data[2])<<8 | uint32(data[3])
 	c.Handle = uint32(data[4])<<24 | uint32(data[5])<<16 | uint32(data[6])<<8 | uint32(data[7])
-	c.TargetONo = uint32(data[8])<<24 | uint32(data[9])<<16 | uint32(data[10])<<8 | uint32(data[11])
+	c.TargetONo = OcaONo(uint32(data[8])<<24 | uint32(data[9])<<16 | uint32(data[10])<<8 | uint32(data[11]))
 
 	err := c.MethodID.UnmarshalBinary(data[12:16])
 	if err != nil {

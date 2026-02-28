@@ -47,10 +47,10 @@ type ParameterDecoders map[uint16][]ParameterDecoder
 
 type DefLevelDecoders map[uint16]ParameterDecoders
 
-type ObjectDecoders map[uint32]DefLevelDecoders
+type ObjectDecoders map[OcaONo]DefLevelDecoders
 
 var OcaObjectDecoders = ObjectDecoders{
-	4: {
+	OcaSubscriptionManager: {
 		3: {
 			8: []ParameterDecoder{
 				func(data []byte) (Ocp1Parameter, uint16, error) {
@@ -78,7 +78,7 @@ var OcaObjectDecoders = ObjectDecoders{
 	},
 }
 
-func (od ObjectDecoders) GetParameterDecoders(targetONo uint32, defLevel uint16, methodIndex uint16) ([]ParameterDecoder, error) {
+func (od ObjectDecoders) GetParameterDecoders(targetONo OcaONo, defLevel uint16, methodIndex uint16) ([]ParameterDecoder, error) {
 	objectDecoder, ok := od[targetONo]
 	if !ok {
 		return nil, fmt.Errorf("Ocp1Command: no decoder found for TargetONo %d", targetONo)
