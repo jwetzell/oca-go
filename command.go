@@ -106,3 +106,14 @@ func (c *Ocp1Command) String() string {
 	return fmt.Sprintf("{Size: %d, Handle: %d, TargetONo: %d, MethodID: %s, Parameters: %s}",
 		c.CommandSize, c.Handle, c.TargetONo, c.MethodID.String(), c.Parameters.String())
 }
+
+func (c *Ocp1Command) GetParameterDecoders() ([]ParameterDecoder, error) {
+	if c.Parameters.ParameterCount == 0 {
+		return nil, nil
+	}
+	parameterDecoders, err := OcaObjectDecoders.GetParameterDecoders(c.TargetONo, c.MethodID.DefLevel, c.MethodID.MethodIndex)
+	if err != nil {
+		return nil, fmt.Errorf("Ocp1Command: failed to get method parameter decoder: %w", err)
+	}
+	return parameterDecoders, nil
+}
