@@ -37,28 +37,18 @@ func (c *Ocp1Command) UnmarshalBinary(data []byte) error {
 	}
 	c.Parameters.Parameters = make([]Ocp1Parameter, c.Parameters.ParameterCount)
 
-	objectDecoder, ok := ObjectDecoders[c.TargetONo]
-	if !ok {
-		return fmt.Errorf("Ocp1Command: no decoder found for TargetONo %d", c.TargetONo)
+	parameterDecoders, err := OcaObjectDecoders.GetParameterDecoders(c.TargetONo, c.MethodID.DefLevel, c.MethodID.MethodIndex)
+	if err != nil {
+		return fmt.Errorf("Ocp1Command: failed to get method parameter decoder: %w", err)
 	}
 
-	defLevelDecoder, ok := objectDecoder[c.MethodID.DefLevel]
-	if !ok {
-		return fmt.Errorf("Ocp1Command: no decoder found for DefLevel %d", c.MethodID.DefLevel)
-	}
-
-	methodDecoder, ok := defLevelDecoder[c.MethodID.MethodIndex]
-	if !ok {
-		return fmt.Errorf("Ocp1Command: no decoder found for MethodIndex %d", c.MethodID.MethodIndex)
-	}
-
-	if len(methodDecoder) != int(c.Parameters.ParameterCount) {
-		return fmt.Errorf("Ocp1Command: expected %d parameter decoders, got %d", len(methodDecoder), c.Parameters.ParameterCount)
+	if len(parameterDecoders) != int(c.Parameters.ParameterCount) {
+		return fmt.Errorf("Ocp1Command: expected %d parameter decoders got %d", len(parameterDecoders), c.Parameters.ParameterCount)
 	}
 
 	paramOffset := 0
 	for i := 0; i < int(c.Parameters.ParameterCount); i++ {
-		decoder := methodDecoder[i]
+		decoder := parameterDecoders[i]
 		param, size, err := decoder(c.Parameters.Bytes[paramOffset:])
 		if err != nil {
 			return fmt.Errorf("Ocp1Command: failed to decode parameter %d: %w", i, err)

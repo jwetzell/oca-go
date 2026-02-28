@@ -43,13 +43,13 @@ func (p Ocp1Parameters) MarshalBinary() ([]byte, error) {
 
 type ParameterDecoder func([]byte) (Ocp1Parameter, uint16, error)
 
-type MethodDecoder map[uint16][]ParameterDecoder
+type ParameterDecoders map[uint16][]ParameterDecoder
 
-type DefLevelDecoder map[uint16]MethodDecoder
+type DefLevelDecoders map[uint16]ParameterDecoders
 
-type ObjectDecoder map[uint32]DefLevelDecoder
+type ObjectDecoders map[uint32]DefLevelDecoders
 
-var ObjectDecoders = ObjectDecoder{
+var OcaObjectDecoders = ObjectDecoders{
 	4: {
 		3: {
 			8: []ParameterDecoder{
@@ -76,4 +76,23 @@ var ObjectDecoders = ObjectDecoder{
 			},
 		},
 	},
+}
+
+func (od ObjectDecoders) GetParameterDecoders(targetONo uint32, defLevel uint16, methodIndex uint16) ([]ParameterDecoder, error) {
+	objectDecoder, ok := od[targetONo]
+	if !ok {
+		return nil, fmt.Errorf("Ocp1Command: no decoder found for TargetONo %d", targetONo)
+	}
+
+	defLevelDecoder, ok := objectDecoder[defLevel]
+	if !ok {
+		return nil, fmt.Errorf("Ocp1Command: no decoder found for DefLevel %d", defLevel)
+	}
+
+	parameterDecoders, ok := defLevelDecoder[methodIndex]
+	if !ok {
+		return nil, fmt.Errorf("Ocp1Command: no decoder found for MethodIndex %d", methodIndex)
+	}
+
+	return parameterDecoders, nil
 }
