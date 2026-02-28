@@ -4,6 +4,10 @@ import (
 	"errors"
 )
 
+type OcaStatus uint8
+
+type OcaONo uint32
+
 type OcaBlob []byte
 
 func (b *OcaBlob) UnmarshalBinary(data []byte) error {
@@ -28,4 +32,10 @@ func (b OcaBlob) MarshalBinary() ([]byte, error) {
 	data[1] = byte(length & 0xff)
 	data = append(data, b...)
 	return data, nil
+}
+
+type OcaNotificationDeliveryMode uint8
+
+func (m OcaNotificationDeliveryMode) MarshalBinary() ([]byte, error) {
+	return []byte{byte(m)}, nil
 }

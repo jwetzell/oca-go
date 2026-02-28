@@ -47,6 +47,19 @@ func (m *Ocp1MessagePdu) UnmarshalBinary(data []byte) error {
 			commandOffset += int(command.CommandSize)
 		}
 		m.Data = &commands
+	case Ocp1Rsp:
+		responses := Ocp1ResponseData{}
+		responseOffset := 0
+		for i := 0; i < int(m.Header.MessageCount); i++ {
+			response := Ocp1Response{}
+			err := response.UnmarshalBinary(dataBytes[responseOffset:])
+			if err != nil {
+				return fmt.Errorf("Ocp1MessagePdu: failed to unmarshal response %d: %w", i, err)
+			}
+			responses = append(responses, response)
+			responseOffset += int(response.ResponseSize)
+		}
+		m.Data = &responses
 	case Ocp1KeepAlive:
 		keepAliveData := Ocp1KeepAliveData{}
 		err := keepAliveData.UnmarshalBinary(dataBytes)
