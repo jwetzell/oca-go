@@ -43,7 +43,7 @@ func (c *Ocp1Command) UnmarshalBinary(data []byte) error {
 	}
 
 	if len(parameterDecoders) != int(c.Parameters.ParameterCount) {
-		return fmt.Errorf("Ocp1Command: expected %d parameter decoders got %d", len(parameterDecoders), c.Parameters.ParameterCount)
+		return fmt.Errorf("Ocp1Command: expected %d parameter decoders got %d", c.Parameters.ParameterCount, len(parameterDecoders))
 	}
 
 	paramOffset := 0
