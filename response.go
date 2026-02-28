@@ -14,6 +14,25 @@ type Ocp1Response struct {
 
 type Ocp1ResponseData []Ocp1Response
 
+func NewResponse(handle uint32, status OcaStatus, parameters Ocp1Parameters) (Ocp1Response, error) {
+
+	response := Ocp1Response{
+		Handle:     handle,
+		StatusCode: status,
+		Parameters: parameters,
+	}
+
+	responseSize := uint32(9) // size of fixed fields
+	parametersBytes, err := parameters.MarshalBinary()
+	if err != nil {
+		return Ocp1Response{}, fmt.Errorf("failed to marshal parameters: %w", err)
+	}
+	responseSize += uint32(len(parametersBytes))
+	response.ResponseSize = responseSize
+
+	return response, nil
+}
+
 func (r *Ocp1Response) UnmarshalBinary(data []byte) error {
 	if len(data) < 9 {
 		return errors.New("Ocp1Response: not enough data")
@@ -31,7 +50,7 @@ func (r *Ocp1Response) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (r *Ocp1Response) MarshalBinary() ([]byte, error) {
+func (r Ocp1Response) MarshalBinary() ([]byte, error) {
 	bytes := make([]byte, 9)
 	bytes[0] = byte(r.ResponseSize >> 24)
 	bytes[1] = byte((r.ResponseSize >> 16) & 0xff)
@@ -54,9 +73,9 @@ func (r *Ocp1Response) MarshalBinary() ([]byte, error) {
 	return bytes, nil
 }
 
-func (d *Ocp1ResponseData) MarshalBinary() ([]byte, error) {
+func (d Ocp1ResponseData) MarshalBinary() ([]byte, error) {
 	var bytes []byte
-	for _, cmd := range *d {
+	for _, cmd := range d {
 		cmdBytes, err := cmd.MarshalBinary()
 		if err != nil {
 			return nil, fmt.Errorf("Ocp1ResponseData: failed to marshal command: %w", err)
