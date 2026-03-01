@@ -109,8 +109,6 @@ ClientRead:
 }
 
 func (d *OcaDevice) handleOcaMessage(conn *net.TCPConn, message Ocp1MessagePdu) {
-	fmt.Printf("Received OCA message: %+v\n", message)
-	fmt.Printf("\tOCA Data: %+v\n", message.Data)
 	switch message.Header.PduType {
 	case Ocp1Cmd, Ocp1CmdRrq:
 		commandData, ok := message.Data.(*Ocp1CommandData)
@@ -120,10 +118,12 @@ func (d *OcaDevice) handleOcaMessage(conn *net.TCPConn, message Ocp1MessagePdu) 
 		}
 		for _, cmd := range *commandData {
 			if message.Header.PduType == Ocp1CmdRrq {
-				d.handleCommandRequiringResponse(conn, cmd)
+				err := d.handleCommandRequiringResponse(conn, cmd)
+				if err != nil {
+					fmt.Printf("Failed to handle command requiring response: %s\n", err)
+				}
 			}
 		}
-
 	case Ocp1KeepAlive:
 		_, ok := message.Data.(*Ocp1KeepAliveData)
 		if !ok {
@@ -156,7 +156,6 @@ func (d *OcaDevice) handleOcaMessage(conn *net.TCPConn, message Ocp1MessagePdu) 
 }
 
 func (d *OcaDevice) handleData(conn *net.TCPConn, data []byte) {
-	fmt.Printf("handling data: %x\n", data)
 	for _, dataByte := range data {
 		if dataByte == 0x3b {
 			if len(d.ocaMessageBuffer) > 0 {
@@ -217,7 +216,11 @@ func (d *OcaDevice) Start(ctx context.Context) error {
 }
 
 func (d *OcaDevice) handleCommandRequiringResponse(conn *net.TCPConn, cmd Ocp1Command) error {
-	fmt.Printf("Received command requiring response: %+v\n", cmd)
+	base := &OcaBase{
+		Ono:  cmd.TargetONo,
+		conn: conn,
+	}
+
 	switch cmd.TargetONo {
 	case OcaDeviceManager:
 		switch cmd.MethodID.DefLevel {
@@ -228,24 +231,9 @@ func (d *OcaDevice) handleCommandRequiringResponse(conn *net.TCPConn, cmd Ocp1Co
 				if err != nil {
 					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
 					return err
-				}
-				response, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return err
-				}
-				responseBytes, err := response.MarshalBinary()
-				if err != nil {
-					return err
-				}
-				fmt.Printf("Writing response bytes to client at %s: %x\n", conn.RemoteAddr().String(), responseBytes)
-				_, err = conn.Write(responseBytes)
-				if err != nil {
-					return nil
 				}
 			case 2:
 				parameters, err := NewParameters([]Ocp1Parameter{OcaModelGUID{
@@ -254,223 +242,92 @@ func (d *OcaDevice) handleCommandRequiringResponse(conn *net.TCPConn, cmd Ocp1Co
 					ModelCode: OcaBlobFixed{0x44, 0x55, 0x66, 0x77},
 				}})
 				if err != nil {
-					return nil
+					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
-					return nil
-				}
-				enabledResponse, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return nil
-				}
-				enabledResponseBytes, err := enabledResponse.MarshalBinary()
-				if err != nil {
-					return nil
-				}
-				_, err = conn.Write(enabledResponseBytes)
-				if err != nil {
-					return nil
+					return err
 				}
 			case 3:
 				parameters, err := NewParameters([]Ocp1Parameter{OcaString("abc123")})
 				if err != nil {
-					return nil
+					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
-					return nil
+					return err
 				}
-				response, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return nil
-				}
-				responseBytes, err := response.MarshalBinary()
-				if err != nil {
-					return nil
-				}
-				conn.Write(responseBytes)
 			case 4:
 				parameters, err := NewParameters([]Ocp1Parameter{OcaString("oca-test-device")})
 				if err != nil {
-					return nil
+					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
-					return nil
-				}
-				response, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return nil
-				}
-				responseBytes, err := response.MarshalBinary()
-				if err != nil {
-					return nil
-				}
-				_, err = conn.Write(responseBytes)
-				if err != nil {
-					return nil
+					return err
 				}
 			case 6:
 				parameters, err := NewParameters([]Ocp1Parameter{OcaString("Test Manufacturer"), OcaString("Test Model"), OcaString("v0.0.0")})
 				if err != nil {
-					return nil
+					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
-					return nil
-				}
-				response, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return nil
-				}
-				responseBytes, err := response.MarshalBinary()
-				if err != nil {
-					return nil
-				}
-				_, err = conn.Write(responseBytes)
-				if err != nil {
-					return nil
+					return err
 				}
 			case 7:
 				parameters, err := NewParameters([]Ocp1Parameter{OcaString("TestDevice")})
 				if err != nil {
-					return nil
+					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
-					return nil
-				}
-				response, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return nil
-				}
-				responseBytes, err := response.MarshalBinary()
-				if err != nil {
-					return nil
-				}
-				_, err = conn.Write(responseBytes)
-				if err != nil {
-					return nil
+					return err
 				}
 			case 9:
 				parameters, err := NewParameters([]Ocp1Parameter{OcaString("TEST1234")})
 				if err != nil {
-					return nil
+					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
-					return nil
-				}
-				response, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return nil
-				}
-				responseBytes, err := response.MarshalBinary()
-				if err != nil {
-					return nil
-				}
-				_, err = conn.Write(responseBytes)
-				if err != nil {
-					return nil
+					return err
 				}
 			case 11:
 				parameters, err := NewParameters([]Ocp1Parameter{OcaBool(true)})
 				if err != nil {
-					return nil
+					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
-					return nil
+					return err
 				}
-				enabledResponse, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return nil
-				}
-				enabledResponseBytes, err := enabledResponse.MarshalBinary()
-				if err != nil {
-					return nil
-				}
-				conn.Write(enabledResponseBytes)
 			case 13:
 				parameters, err := NewParameters([]Ocp1Parameter{OcaDeviceState(0)})
 				if err != nil {
-					return nil
+					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
-					return nil
+					return err
 				}
-				enabledResponse, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return nil
-				}
-				enabledResponseBytes, err := enabledResponse.MarshalBinary()
-				if err != nil {
-					return nil
-				}
-				conn.Write(enabledResponseBytes)
 			case 17:
 				parameters, err := NewParameters([]Ocp1Parameter{OcaString("Test Message")})
 				if err != nil {
-					return nil
+					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
-					return nil
-				}
-				response, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return nil
-				}
-				responseBytes, err := response.MarshalBinary()
-				if err != nil {
-					return nil
-				}
-				_, err = conn.Write(responseBytes)
-				if err != nil {
-					return nil
+					return err
 				}
 			case 20:
 				parameters, err := NewParameters([]Ocp1Parameter{OcaString("ALPHA")})
 				if err != nil {
-					return nil
+					return err
 				}
-				ocp1Response, err := NewResponse(cmd.Handle, 0, parameters)
+				err = base.SendResponse(cmd.Handle, 0, parameters)
 				if err != nil {
-					return nil
-				}
-				response, err := NewMessage(1, Ocp1Rsp, Ocp1ResponseData{
-					ocp1Response,
-				})
-				if err != nil {
-					return nil
-				}
-				responseBytes, err := response.MarshalBinary()
-				if err != nil {
-					return nil
-				}
-				_, err = conn.Write(responseBytes)
-				if err != nil {
-					return nil
+					return err
 				}
 			default:
 				return fmt.Errorf("unhandled method: %+v\n", cmd)
